@@ -3,6 +3,7 @@ var markers = [];
 var toastMessages = [];
 var pics = 35;
 var socket;
+var watchId = null;
 $(document).ready(function () {
     // $('.alert').alert('close');
     socket = io('http://localhost:3000');
@@ -15,11 +16,11 @@ $(document).ready(function () {
     socket.on('added', userAdded)
     socket.on('joined', ivejoined)
     $('#userModal').on('shown.bs.modal', function () {
-        var html = '<div class="row">';
+        var html = '';
         for (let i = 1; i <= pics; i++) {
-            html += `<div class="col-md-2 col-xs-4" id="selectAvatar" onclick="$('#userAvatar > img').prop('src','./images/avatars/${i}.png');$('#modalAvatars').modal('hide');" style="text-align:center;margin-bottom:2px;cursor:pointer"><img style="border: 3px solid silver;border-radius: 4px;"src="./images/avatars/${i}.png" /></div>`;
+            html += `<div style="display:inline-flex;flex: none;margin-left: 5px;" id="selectAvatar" onclick="$('#userAvatar > img').prop('src','./images/avatars/${i}.png');$('#modalAvatars').modal('hide');" style="text-align:center;margin-bottom:2px;cursor:pointer"><img style="border: 3px solid silver;border-radius: 4px;"src="./images/avatars/${i}.png" /></div>`;
         }
-        html += '</div>';
+        html += '';
         $('#avatars').html(html);
     });
     $('#txtUserName').on('keyup', function () {
@@ -35,6 +36,16 @@ $(document).ready(function () {
             $('#txtUserName').val($('#txtUserName').val().substring(0, $('#txtUserName').val().length - 1));
         }
     });
+    $('#chkShare').change((e) => {
+        if ($('#chkShare').prop('checked')) {
+            $('#chkShare').removeClass('error-border')
+            $('#btnStart').removeAttr('disabled');
+        }
+        else {
+            $('#chkShare').addClass('error-border')
+            $('#btnStart').attr('disabled', 'disabled');
+        }
+    })
     $('#btnStart').click(() => {
         addUser();
         hideUserModal();
@@ -95,7 +106,7 @@ function removeUser(e) {
         return m.options.user.userId == e.user.userId
     })[0];
     delMarker.remove();
-    markers.splice(markers.findIndex(m => { return m.options.id == e.user.userId }), 1);
+    markers.splice(markers.findIndex(m => { return m.options.user.userId == e.user.userId }), 1);
     updateUserList();
     toastMessages.push(`<img src="images/avatars/${e.user.userPic}" /><strong class="me-auto" style="margin-left: 12px;">${e.user.userName}</strong>&nbsp;&nbsp;&nbsp;  has disconnected`);
     showToast();
@@ -139,7 +150,7 @@ function showUserModal(user) {
         const nme = $('#userAvatarNavbar').html().split('<img')[0]
         const img = $('#userAvatarNavbar').html().split('<img')[1]
         let html = `<img ${img}<strong class="me-auto" style="margin-left: 12px;">${nme}</strong>
-                <small>sharing...</small>
+                <small>trakked...</small>
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>`;
         $('#loginToastHeader').html(html);
         const loginToast = $('#loginToast');
@@ -202,9 +213,14 @@ function addUser() {
             userId: markers.length + Math.random().toString(),
             userPic: $('#userAvatar > img').prop('src').split('/').pop()
         }
-        navigator.geolocation.getCurrentPosition((position) => {
+        // start watching for position changes
+        watchId = window.navigator.geolocation.watchPosition((position) => {
             socket.emit('updateLocation', { user: user, position: position });
         }, (ero) => { console.error(ero) });
+
+        // navigator.geolocation.getCurrentPosition((position) => {
+        //     socket.emit('updateLocation', { user: user, position: position });
+        // }, (ero) => { console.error(ero) });
         updateUserAvatarNavbarr(user);
     }
     else {
