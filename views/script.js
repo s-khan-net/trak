@@ -6,7 +6,7 @@ var socket;
 var watchId = null;
 $(document).ready(function () {
     // $('.alert').alert('close');
-    socket = io('http://localhost:3000');
+    socket = io('https://trak-8j4p.onrender.com/');
     socket.on('connect', function () {
         console.log('connected')
     });
